@@ -78,7 +78,11 @@ export class AuthService {
       },
     });
 
-    await this.mailService.sendVerificationEmail(user.email, otp);
+    try {
+      await this.mailService.sendVerificationEmail(user.email, otp);
+    } catch {
+      // Email failed but user is created — they can use resend-verification
+    }
 
     return {
       message: 'Registration successful. Check your email for the verification code.',
@@ -123,7 +127,11 @@ export class AuthService {
       data: { emailVerifyToken: otp, emailVerifyExpiry: expiry },
     });
 
-    await this.mailService.sendVerificationEmail(email, otp);
+    try {
+      await this.mailService.sendVerificationEmail(email, otp);
+    } catch {
+      // Email failed — OTP is in DB, user can retry
+    }
 
     return { message: 'Verification code resent' };
   }
@@ -195,7 +203,11 @@ export class AuthService {
       data: { passwordResetToken: token, passwordResetExpiry: expiry },
     });
 
-    await this.mailService.sendPasswordResetEmail(email, token);
+    try {
+      await this.mailService.sendPasswordResetEmail(email, token);
+    } catch {
+      // Email failed — token is in DB
+    }
 
     return { message: 'If that email exists, a reset link has been sent' };
   }
@@ -299,7 +311,11 @@ export class AuthService {
       data: { pinResetToken: token, pinResetExpiry: expiry },
     });
 
-    await this.mailService.sendPinResetEmail(user.email, token);
+    try {
+      await this.mailService.sendPinResetEmail(user.email, token);
+    } catch {
+      // Email failed — token is in DB
+    }
 
     return { message: 'PIN reset link sent to your email' };
   }
