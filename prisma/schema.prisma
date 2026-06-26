@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum DepositStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  MINING_EARNING
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id            String  @id @default(cuid())
+  email         String  @unique
+  password      String
+  role          Role    @default(USER)
+  isVerified    Boolean @default(false)
+  isSuspended   Boolean @default(false)
+
+  // PIN
+  pin      String?
+  isPinSet Boolean @default(false)
+
+  // Email verification
+  emailVerifyToken  String?
+  emailVerifyExpiry DateTime?
+
+  // Password reset
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+
+  // PIN reset
+  pinResetToken  String?
+  pinResetExpiry DateTime?
+
+  // Custom QR code (Base64)
+  customQr String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deposits       Deposit[]
+  withdrawals    Withdrawal[]
+  transactions   Transaction[]
+  notifications  Notification[]
+  miningEarnings MiningEarning[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Deposit {
+  id     String        @id @default(cuid())
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount Decimal       @db.Decimal(18, 8)
+  txHash String        @unique
+  status DepositStatus @default(PENDING)
+  notes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transaction Transaction?
+
+  @@map("deposits")
+}
+
+model Withdrawal {
+  id      String           @id @default(cuid())
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount  Decimal          @db.Decimal(18, 8)
+  address String
+  status  WithdrawalStatus @default(PENDING)
+  notes   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transaction Transaction?
+
+  @@map("withdrawals")
+}
+
+model MiningEarning {
+  id     String  @id @default(cuid())
+  userId String
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount Decimal @db.Decimal(18, 8)
+  note   String?
+
+  createdAt DateTime @default(now())
+
+  transaction Transaction?
+
+  @@map("mining_earnings")
+}
+
+model Transaction {
+  id     String          @id @default(cuid())
+  userId String
+  user   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   TransactionType
+  amount Decimal         @db.Decimal(18, 8)
+
+  depositId String?  @unique
+  deposit   Deposit? @relation(fields: [depositId], references: [id])
+
+  withdrawalId String?     @unique
+  withdrawal   Withdrawal? @relation(fields: [withdrawalId], references: [id])
+
+  miningEarningId String?        @unique
+  miningEarning   MiningEarning? @relation(fields: [miningEarningId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@map("transactions")
+}
+
+model Notification {
+  id      String           @id @default(cuid())
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title   String
+  message String
+  type    NotificationType @default(INFO)
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model PlatformConfig {
+  id             String  @id @default(cuid())
+  depositAddress String  @default("TELEXuLxzbW6ejKTL6qKJE48UA3LQDaBo")
+  defaultQr      String? @db.Text
+  whatsappLink   String  @default("")
+  telegramLink   String  @default("")
+
+  // Mining rate config
+  miningDailyRate Decimal @default(0.005) @db.Decimal(10, 6)
+  minDeposit      Decimal @default(10) @db.Decimal(18, 8)
+  minWithdrawal   Decimal @default(10) @db.Decimal(18, 8)
+
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_config")
+}
