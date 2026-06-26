@@ -3,7 +3,7 @@ services:
     name: rwf-miner-api
     env: node
     plan: free
-    buildCommand: npm ci && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start:render
     envVars:
       - key: NODE_ENV
@@ -21,9 +21,9 @@ services:
       - key: MAIL_HOST
         value: smtp.gmail.com
       - key: MAIL_PORT
-        value: 587
+        value: 465
       - key: MAIL_SECURE
-        value: false
+        value: true
       - key: MAIL_USER
         sync: false
       - key: MAIL_PASS
