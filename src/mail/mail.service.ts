@@ -13,9 +13,11 @@ export class MailService {
       secure: process.env.MAIL_SECURE === 'true',
       auth: {
         user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
+        pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
       },
     });
+
+    this.logger.log(`Mail transporter ready — user: ${process.env.MAIL_USER}`);
   }
 
   private async send(to: string, subject: string, html: string) {
@@ -28,7 +30,7 @@ export class MailService {
       });
       this.logger.log(`Email sent to ${to} — ${subject}`);
     } catch (err) {
-      this.logger.error(`Failed to send email to ${to}`, err);
+      this.logger.error(`SMTP error sending to ${to}: ${err.message}`);
       throw new InternalServerErrorException('Failed to send email. Please try again.');
     }
   }
