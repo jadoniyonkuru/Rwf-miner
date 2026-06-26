@@ -1,30 +1,40 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private resend: Resend;
+  private transporter: nodemailer.Transporter;
 
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
-    this.logger.log(`Mail service ready — Resend API`);
+    this.transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: (process.env.MAIL_PASS || '').replace(/\s/g, ''),
+      },
+      tls: { rejectUnauthorized: false },
+    });
+
+    this.logger.log(`Mail transporter ready — user: ${process.env.MAIL_USER}`);
   }
 
   private async send(to: string, subject: string, html: string) {
-    const { error } = await this.resend.emails.send({
-      from: process.env.MAIL_FROM || 'RWF Miner <onboarding@resend.dev>',
-      to,
-      subject,
-      html,
-    });
-
-    if (error) {
-      this.logger.error(`Resend error sending to ${to}: ${error.message}`);
+    try {
+      await this.transporter.sendMail({
+        from: process.env.MAIL_FROM,
+        to,
+        subject,
+        html,
+      });
+      this.logger.log(`Email sent to ${to} — ${subject}`);
+    } catch (err) {
+      this.logger.error(`SMTP error sending to ${to}: ${err.message}`);
       throw new InternalServerErrorException('Failed to send email. Please try again.');
     }
-
-    this.logger.log(`Email sent to ${to} — ${subject}`);
   }
 
   async sendVerificationEmail(to: string, otp: string) {

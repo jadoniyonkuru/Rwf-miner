@@ -84,9 +84,14 @@ export class AuthService {
       // Email failed but user is created — they can use resend-verification
     }
 
+    const testMode = process.env.TESTING_MODE === 'true';
+
     return {
       message: 'Registration successful. Check your email for the verification code.',
-      data: { email: this.maskEmail(user.email) },
+      data: {
+        email: this.maskEmail(user.email),
+        ...(testMode && { verificationCode: otp }),
+      },
     };
   }
 
@@ -133,7 +138,12 @@ export class AuthService {
       // Email failed — OTP is in DB, user can retry
     }
 
-    return { message: 'Verification code resent' };
+    const testMode = process.env.TESTING_MODE === 'true';
+
+    return {
+      message: 'Verification code resent',
+      ...(testMode && { verificationCode: otp }),
+    };
   }
 
   // ── Login ─────────────────────────────────────────────────────────────────
