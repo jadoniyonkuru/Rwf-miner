@@ -56,6 +56,71 @@ export class AdminDepositsService {
             depositId: id,
           },
         });
+
+        // Referral commissions — L1: 10%, L2: 3%
+        const depositor = await tx.user.findUnique({
+          where: { id: deposit.userId },
+          select: {
+            referrerId: true,
+            referrer: { select: { id: true, referrerId: true } },
+          },
+        });
+
+        const depositAmount = Number(deposit.amount);
+
+        if (depositor?.referrerId) {
+          const l1Amount = +(depositAmount * 0.10).toFixed(8);
+          const l1Earning = await tx.miningEarning.create({
+            data: {
+              userId: depositor.referrerId,
+              amount: l1Amount,
+              note: `L1 referral commission (10%) from deposit`,
+            },
+          });
+          await tx.transaction.create({
+            data: {
+              userId: depositor.referrerId,
+              type: 'MINING_EARNING',
+              amount: l1Amount,
+              miningEarningId: l1Earning.id,
+            },
+          });
+          await tx.notification.create({
+            data: {
+              userId: depositor.referrerId,
+              title: 'Referral Commission Earned',
+              message: `You earned ${l1Amount.toFixed(2)} USDT (10% L1 commission) from your referral's confirmed deposit.`,
+              type: 'SUCCESS',
+            },
+          });
+
+          if (depositor.referrer?.referrerId) {
+            const l2Amount = +(depositAmount * 0.03).toFixed(8);
+            const l2Earning = await tx.miningEarning.create({
+              data: {
+                userId: depositor.referrer.referrerId,
+                amount: l2Amount,
+                note: `L2 referral commission (3%) from deposit`,
+              },
+            });
+            await tx.transaction.create({
+              data: {
+                userId: depositor.referrer.referrerId,
+                type: 'MINING_EARNING',
+                amount: l2Amount,
+                miningEarningId: l2Earning.id,
+              },
+            });
+            await tx.notification.create({
+              data: {
+                userId: depositor.referrer.referrerId,
+                title: 'Referral Commission Earned',
+                message: `You earned ${l2Amount.toFixed(2)} USDT (3% L2 commission) from a Level 2 referral's confirmed deposit.`,
+                type: 'SUCCESS',
+              },
+            });
+          }
+        }
       }
 
       const notifTitle = dto.status === 'CONFIRMED' ? 'Deposit Confirmed' : 'Deposit Rejected';
