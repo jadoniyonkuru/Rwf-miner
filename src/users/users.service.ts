@@ -91,12 +91,12 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://rwf-miner-ui.vercel.app';
 
     return {
       data: {
-        referralCode: user.referralCode,
-        referralLink: `${frontendUrl}/register?ref=${user.referralCode}`,
+        referralCode: user.referralCode ?? null,
+        referralLink: user.referralCode ? `${frontendUrl}/register?ref=${user.referralCode}` : null,
         totalReferrals: user.referrals.length,
         verifiedReferrals: user.referrals.filter(r => r.isVerified).length,
         referredBy: user.referrer?.referralCode ?? null,
