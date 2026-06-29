@@ -69,7 +69,7 @@ model User {
   customQr String? @db.Text
 
   // Referral
-  referralCode String  @unique
+  referralCode String? @unique
   referrerId   String?
   referrer     User?   @relation("Referrals", fields: [referrerId], references: [id])
   referrals    User[]  @relation("Referrals")

@@ -72,7 +72,7 @@ export class AuthService {
 
     let referrerId: string | undefined;
     if (dto.referralCode) {
-      const referrer = await this.prisma.user.findUnique({
+      const referrer = await this.prisma.user.findFirst({
         where: { referralCode: dto.referralCode },
       });
       if (referrer) referrerId = referrer.id;
@@ -83,7 +83,7 @@ export class AuthService {
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
     let referralCode = this.generateReferralCode();
-    while (await this.prisma.user.findUnique({ where: { referralCode } })) {
+    while (await this.prisma.user.findFirst({ where: { referralCode } })) {
       referralCode = this.generateReferralCode();
     }
 
