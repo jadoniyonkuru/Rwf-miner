@@ -34,6 +34,11 @@ export class AuthService {
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
+  private generateReferralCode(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
   private maskEmail(email: string): string {
     const [local, domain] = email.split('@');
     return `${local.slice(0, 2)}${'•'.repeat(3)}@${domain}`;
@@ -65,9 +70,22 @@ export class AuthService {
     });
     if (existing) throw new ConflictException('Email already registered');
 
+    let referrerId: string | undefined;
+    if (dto.referralCode) {
+      const referrer = await this.prisma.user.findUnique({
+        where: { referralCode: dto.referralCode },
+      });
+      if (referrer) referrerId = referrer.id;
+    }
+
     const hashedPassword = await bcrypt.hash(dto.password, 12);
     const otp = this.generateOtp();
     const expiry = new Date(Date.now() + 15 * 60 * 1000);
+
+    let referralCode = this.generateReferralCode();
+    while (await this.prisma.user.findUnique({ where: { referralCode } })) {
+      referralCode = this.generateReferralCode();
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -75,6 +93,8 @@ export class AuthService {
         password: hashedPassword,
         emailVerifyToken: otp,
         emailVerifyExpiry: expiry,
+        referralCode,
+        ...(referrerId && { referrerId }),
       },
     });
 

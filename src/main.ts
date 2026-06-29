@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -8,6 +9,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
+  app.use(helmet());
   app.setGlobalPrefix(process.env.API_PREFIX || 'api');
 
   const allowedOrigins = [
@@ -57,10 +59,11 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log('\n=============================================================');
-  console.log('  RWF Miner API — Day 7: Admin Deposits + Withdrawals     ');
+  console.log('  RWF Miner API — Day 9: Security + Referral System       ');
   console.log('=============================================================');
   console.log(`  API Base URL  : http://localhost:${port}/api`);
   console.log(`  Swagger Docs  : http://localhost:${port}/docs`);
+  console.log(`  Health Check  : http://localhost:${port}/api/health`);
   console.log('=============================================================\n');
 }
 

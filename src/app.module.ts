@@ -12,8 +12,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SupportModule } from './support/support.module';
 import { AdminModule } from './admin/admin.module';
-
-// Day 6 — Admin Users module added
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -35,6 +34,7 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     SupportModule,
     AdminModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

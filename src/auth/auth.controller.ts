@@ -13,6 +13,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -37,6 +38,7 @@ export class AuthController {
   // ── Registration & Verification ──────────────────────────────────────────
 
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiResponse({
     status: 201,
@@ -85,6 +87,7 @@ export class AuthController {
   // ── Session Management ────────────────────────────────────────────────────
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive access + refresh tokens' })
   @ApiResponse({
@@ -144,6 +147,7 @@ export class AuthController {
   // ── Password Management ───────────────────────────────────────────────────
 
   @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a password reset link (sent to email)' })
   @ApiResponse({

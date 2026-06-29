@@ -70,4 +70,26 @@ export class UsersController {
   deleteAccount(@CurrentUser() user: any) {
     return this.usersService.deleteAccount(user.id);
   }
+
+  @Get('me/referral')
+  @ApiOperation({ summary: 'Get your referral code, link, and referral stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Referral info',
+    schema: {
+      example: {
+        data: {
+          referralCode: 'KANA6992',
+          referralLink: 'https://rwf-miner-ui.vercel.app/register?ref=KANA6992',
+          totalReferrals: 3,
+          verifiedReferrals: 2,
+          referredBy: null,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  getReferral(@CurrentUser() user: any) {
+    return this.usersService.getReferral(user.id);
+  }
 }

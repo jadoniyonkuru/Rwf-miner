@@ -79,4 +79,28 @@ export class UsersService {
     await this.prisma.user.delete({ where: { id: userId } });
     return { message: 'Account deleted successfully' };
   }
+
+  async getReferral(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        referralCode: true,
+        referrals: { select: { id: true, createdAt: true, isVerified: true } },
+        referrer: { select: { referralCode: true } },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+    return {
+      data: {
+        referralCode: user.referralCode,
+        referralLink: `${frontendUrl}/register?ref=${user.referralCode}`,
+        totalReferrals: user.referrals.length,
+        verifiedReferrals: user.referrals.filter(r => r.isVerified).length,
+        referredBy: user.referrer?.referralCode ?? null,
+      },
+    };
+  }
 }
