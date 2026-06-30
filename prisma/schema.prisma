@@ -68,6 +68,9 @@ model User {
   // Custom QR code (Base64)
   customQr String? @db.Text
 
+  // Saved wallet address
+  walletAddress String?
+
   // Referral
   referralCode String? @unique
   referrerId   String?
@@ -179,6 +182,20 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@map("notifications")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?
+  action    String
+  ip        String?
+  status    String
+  meta      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
 }
 
 model PlatformConfig {

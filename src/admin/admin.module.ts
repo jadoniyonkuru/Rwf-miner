@@ -11,6 +11,7 @@ import { AnalyticsController } from './analytics/analytics.controller';
 import { AdminConfigController } from './config/admin-config.controller';
 import { AdminNotificationsController } from './notifications/admin-notifications.controller';
 import { AdminDashboardController } from './dashboard/admin-dashboard.controller';
+import { AdminLogsController } from './logs/admin-logs.controller';
 
 // Services
 import { AdminUsersService } from './users/admin-users.service';
@@ -35,6 +36,7 @@ import { AdminDashboardService } from './dashboard/admin-dashboard.service';
     AdminConfigController,
     AdminNotificationsController,
     AdminDashboardController,
+    AdminLogsController,
   ],
   providers: [
     AdminUsersService,

@@ -6,7 +6,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -110,8 +112,9 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Invalid credentials / email not verified / suspended' })
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Body() dto: LoginDto, @Req() req: Request) {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || req.ip;
+    return this.authService.login(dto, ip);
   }
 
   @Post('logout')

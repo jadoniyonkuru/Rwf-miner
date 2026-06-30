@@ -7,11 +7,15 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
 
 @Injectable()
 export class WithdrawalsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
   private async getBalance(userId: string): Promise<number> {
     const [deposits, withdrawals, earnings] = await Promise.all([
@@ -64,6 +68,14 @@ export class WithdrawalsService {
         address: dto.address,
         status: 'PENDING',
       },
+    });
+
+    await this.auditService.log({
+      userId,
+      userEmail: user.email,
+      action: 'withdrawal',
+      status: 'success',
+      meta: { amount: dto.amount, address: dto.address },
     });
 
     return { message: 'Withdrawal request submitted and pending admin approval', data: withdrawal };

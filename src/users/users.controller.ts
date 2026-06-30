@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Delete, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Put, Delete, Body, UseGuards, HttpCode, HttpStatus, Patch } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -69,6 +69,26 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   deleteAccount(@CurrentUser() user: any) {
     return this.usersService.deleteAccount(user.id);
+  }
+
+  @Get('me/wallet')
+  @ApiOperation({ summary: 'Get saved TRC-20 wallet address' })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { data: { walletAddress: 'TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' } } },
+  })
+  getWallet(@CurrentUser() user: any) {
+    return this.usersService.getWallet(user.id);
+  }
+
+  @Put('me/wallet')
+  @ApiOperation({ summary: 'Save or update TRC-20 wallet address' })
+  @ApiResponse({
+    status: 200,
+    schema: { example: { message: 'Wallet address saved', data: { walletAddress: 'TXxxx...' } } },
+  })
+  updateWallet(@CurrentUser() user: any, @Body('walletAddress') walletAddress: string) {
+    return this.usersService.updateWallet(user.id, walletAddress);
   }
 
   @Get('me/referral')

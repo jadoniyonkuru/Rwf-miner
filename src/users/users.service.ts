@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -78,6 +78,23 @@ export class UsersService {
   async deleteAccount(userId: string) {
     await this.prisma.user.delete({ where: { id: userId } });
     return { message: 'Account deleted successfully' };
+  }
+
+  async getWallet(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletAddress: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return { data: { walletAddress: user.walletAddress ?? null } };
+  }
+
+  async updateWallet(userId: string, walletAddress: string) {
+    if (!walletAddress || !/^T[A-Za-z0-9]{33}$/.test(walletAddress)) {
+      throw new BadRequestException('Invalid TRC-20 wallet address');
+    }
+    await this.prisma.user.update({ where: { id: userId }, data: { walletAddress } });
+    return { message: 'Wallet address saved', data: { walletAddress } };
   }
 
   async getReferral(userId: string) {

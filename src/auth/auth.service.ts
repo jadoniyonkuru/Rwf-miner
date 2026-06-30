@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -26,6 +27,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
+    private auditService: AuditService,
   ) {}
 
   // ── Helpers ──────────────────────────────────────────────────────────────
@@ -168,17 +170,30 @@ export class AuthService {
 
   // ── Login ─────────────────────────────────────────────────────────────────
 
-  async login(dto: LoginDto) {
+  async login(dto: LoginDto, ip?: string) {
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      await this.auditService.log({ userEmail: dto.email, action: 'login', ip, status: 'fail', meta: { reason: 'user_not_found' } });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     const passwordMatch = await bcrypt.compare(dto.password, user.password);
-    if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
+    if (!passwordMatch) {
+      await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'wrong_password' } });
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-    if (!user.isVerified) throw new UnauthorizedException('Please verify your email first');
-    if (user.isSuspended) throw new UnauthorizedException('Account suspended');
+    if (!user.isVerified) {
+      await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'email_not_verified' } });
+      throw new UnauthorizedException('Please verify your email first');
+    }
+    if (user.isSuspended) {
+      await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'suspended' } });
+      throw new UnauthorizedException('Account suspended');
+    }
 
     const tokens = await this.issueTokens(user.id, user.email);
+    await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'success' });
 
     return {
       message: 'Login successful',
@@ -275,10 +290,12 @@ export class AuthService {
     if (!match) throw new BadRequestException('Current password is incorrect');
 
     const hashed = await bcrypt.hash(dto.newPassword, 12);
+    const user2 = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashed },
     });
+    await this.auditService.log({ userId, userEmail: user2?.email, action: 'password_change', status: 'success' });
 
     return { message: 'Password changed successfully' };
   }
@@ -324,7 +341,9 @@ export class AuthService {
     if (!match) throw new UnauthorizedException('Current PIN is incorrect');
 
     const hashed = await bcrypt.hash(dto.newPin, 12);
+    const pinUser = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.prisma.user.update({ where: { id: userId }, data: { pin: hashed } });
+    await this.auditService.log({ userId, userEmail: pinUser?.email, action: 'pin_change', status: 'success' });
 
     return { message: 'PIN changed successfully' };
   }
