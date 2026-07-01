@@ -1,20 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private resend: Resend | null = null;
+  private readonly brevoApiKey: string | null = null;
   private smtpTransporter: nodemailer.Transporter | null = null;
-  private readonly from: string;
+  private readonly senderEmail: string;
+  private readonly senderName = 'RWF Miner';
 
   constructor() {
-    this.from = process.env.MAIL_FROM || 'RWF Miner <noreply@rwfminer.com>';
+    this.senderEmail = process.env.MAIL_FROM_EMAIL || process.env.MAIL_USER || 'noreply@rwfminer.com';
 
-    if (process.env.RESEND_API_KEY) {
-      this.resend = new Resend(process.env.RESEND_API_KEY);
-      this.logger.log(`Mail → Resend API (from: ${this.from})`);
+    if (process.env.BREVO_API_KEY) {
+      this.brevoApiKey = process.env.BREVO_API_KEY;
+      this.logger.log(`Mail → Brevo API (from: ${this.senderEmail})`);
     } else if (process.env.MAIL_USER && process.env.MAIL_PASS) {
       this.smtpTransporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
@@ -37,28 +37,43 @@ export class MailService {
   }
 
   private async send(to: string, subject: string, html: string): Promise<void> {
-    if (this.resend) {
+    if (this.brevoApiKey) {
       try {
-        const { error } = await this.resend.emails.send({
-          from: this.from,
-          to,
-          subject,
-          html,
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': this.brevoApiKey,
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            sender: { name: this.senderName, email: this.senderEmail },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html,
+          }),
         });
-        if (error) {
-          this.logger.error(`Resend error to ${to}: ${JSON.stringify(error)}`);
+
+        if (!res.ok) {
+          const body = await res.text();
+          this.logger.error(`Brevo error to ${to}: ${body}`);
         } else {
-          this.logger.log(`Email sent via Resend to ${to}`);
+          this.logger.log(`Email sent via Brevo to ${to}`);
         }
       } catch (err) {
-        this.logger.error(`Resend exception: ${err.message}`);
+        this.logger.error(`Brevo exception: ${err.message}`);
       }
       return;
     }
 
     if (this.smtpTransporter) {
       try {
-        await this.smtpTransporter.sendMail({ from: this.from, to, subject, html });
+        await this.smtpTransporter.sendMail({
+          from: `${this.senderName} <${this.senderEmail}>`,
+          to,
+          subject,
+          html,
+        });
         this.logger.log(`Email sent via SMTP to ${to}`);
       } catch (err) {
         this.logger.error(`SMTP error to ${to}: ${err.message}`);
@@ -116,7 +131,7 @@ export class MailService {
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
         <h2 style="color:#dc2626;margin-bottom:8px">Account Suspended</h2>
         <p style="color:#6b7280;margin-bottom:16px">Your RWF Miner account has been suspended by an administrator.</p>
-        <p style="color:#6b7280;margin-bottom:24px">If you believe this is a mistake or need assistance, please contact our support team. You will not be able to log in until your account is reactivated.</p>
+        <p style="color:#6b7280;margin-bottom:24px">If you believe this is a mistake or need assistance, please contact our support team.</p>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">RWF Miner Support Team</p>
       </div>
     `;
