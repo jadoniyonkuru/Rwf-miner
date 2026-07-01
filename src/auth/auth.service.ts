@@ -295,7 +295,17 @@ export class AuthService {
       where: { id: userId },
       data: { password: hashed },
     });
-    await this.auditService.log({ userId, userEmail: user2?.email, action: 'password_change', status: 'success' });
+    await Promise.all([
+      this.auditService.log({ userId, userEmail: user2?.email, action: 'password_change', status: 'success' }),
+      this.prisma.notification.create({
+        data: {
+          userId,
+          title: 'Password Changed',
+          message: 'Your account password was changed successfully. If you did not do this, contact support immediately.',
+          type: 'INFO',
+        },
+      }),
+    ]);
 
     return { message: 'Password changed successfully' };
   }
@@ -314,6 +324,14 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { pin: hashedPin, isPinSet: true },
+    });
+    await this.prisma.notification.create({
+      data: {
+        userId,
+        title: 'Withdrawal PIN Set',
+        message: 'Your withdrawal PIN has been set successfully. You can now make withdrawals.',
+        type: 'SUCCESS',
+      },
     });
 
     return { message: 'Withdrawal PIN set successfully' };
@@ -343,7 +361,17 @@ export class AuthService {
     const hashed = await bcrypt.hash(dto.newPin, 12);
     const pinUser = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.prisma.user.update({ where: { id: userId }, data: { pin: hashed } });
-    await this.auditService.log({ userId, userEmail: pinUser?.email, action: 'pin_change', status: 'success' });
+    await Promise.all([
+      this.auditService.log({ userId, userEmail: pinUser?.email, action: 'pin_change', status: 'success' }),
+      this.prisma.notification.create({
+        data: {
+          userId,
+          title: 'Withdrawal PIN Changed',
+          message: 'Your withdrawal PIN was changed successfully. If you did not do this, contact support immediately.',
+          type: 'INFO',
+        },
+      }),
+    ]);
 
     return { message: 'PIN changed successfully' };
   }

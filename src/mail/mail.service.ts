@@ -111,6 +111,31 @@ export class MailService {
     await this.send(to, 'Reset your RWF Miner withdrawal PIN', html);
   }
 
+  async sendAccountSuspendedEmail(to: string): Promise<void> {
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
+        <h2 style="color:#dc2626;margin-bottom:8px">Account Suspended</h2>
+        <p style="color:#6b7280;margin-bottom:16px">Your RWF Miner account has been suspended by an administrator.</p>
+        <p style="color:#6b7280;margin-bottom:24px">If you believe this is a mistake or need assistance, please contact our support team. You will not be able to log in until your account is reactivated.</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">RWF Miner Support Team</p>
+      </div>
+    `;
+    await this.send(to, 'Your RWF Miner account has been suspended', html);
+  }
+
+  async sendAccountActivatedEmail(to: string): Promise<void> {
+    const link = `${process.env.FRONTEND_URL || 'https://rwf-miner-ui.vercel.app'}/login`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
+        <h2 style="color:#16a34a;margin-bottom:8px">Account Reactivated</h2>
+        <p style="color:#6b7280;margin-bottom:24px">Good news! Your RWF Miner account has been reactivated. You can now log in and access all features.</p>
+        <a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">Log In Now</a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">RWF Miner Support Team</p>
+      </div>
+    `;
+    await this.send(to, 'Your RWF Miner account has been reactivated', html);
+  }
+
   async sendEmailChangedNotification(to: string, otp: string): Promise<void> {
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">

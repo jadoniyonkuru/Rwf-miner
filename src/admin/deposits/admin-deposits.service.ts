@@ -80,7 +80,7 @@ export class AdminDepositsService {
           await tx.transaction.create({
             data: {
               userId: depositor.referrerId,
-              type: 'MINING_EARNING',
+              type: 'COMMISSION',
               amount: l1Amount,
               miningEarningId: l1Earning.id,
             },
@@ -106,7 +106,7 @@ export class AdminDepositsService {
             await tx.transaction.create({
               data: {
                 userId: depositor.referrer.referrerId,
-                type: 'MINING_EARNING',
+                type: 'COMMISSION',
                 amount: l2Amount,
                 miningEarningId: l2Earning.id,
               },

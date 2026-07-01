@@ -18,11 +18,7 @@ export class WithdrawalsService {
   ) {}
 
   private async getBalance(userId: string): Promise<number> {
-    const [deposits, withdrawals, earnings] = await Promise.all([
-      this.prisma.deposit.aggregate({
-        where: { userId, status: 'CONFIRMED' },
-        _sum: { amount: true },
-      }),
+    const [withdrawals, earnings] = await Promise.all([
       // Deduct both PENDING and COMPLETED to prevent double-spending
       this.prisma.withdrawal.aggregate({
         where: { userId, status: { in: ['PENDING', 'COMPLETED'] } },
@@ -34,9 +30,10 @@ export class WithdrawalsService {
       }),
     ]);
 
-    const totalIn = Number(deposits._sum.amount || 0) + Number(earnings._sum.amount || 0);
+    // Only earnings are withdrawable; deposited principal is locked
+    const totalEarned = Number(earnings._sum.amount || 0);
     const totalOut = Number(withdrawals._sum.amount || 0);
-    return +(totalIn - totalOut).toFixed(8);
+    return +Math.max(0, totalEarned - totalOut).toFixed(8);
   }
 
   async create(userId: string, dto: CreateWithdrawalDto) {

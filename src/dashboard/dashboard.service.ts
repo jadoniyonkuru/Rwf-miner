@@ -28,7 +28,8 @@ export class DashboardService {
     const totalDeposited = Number(deposits._sum.amount || 0);
     const totalWithdrawn = Number(withdrawals._sum.amount || 0);
     const totalEarned = Number(earnings._sum.amount || 0);
-    const balance = +(totalDeposited + totalEarned - totalWithdrawn).toFixed(8);
+    // balance = withdrawable earnings only; deposited principal is locked
+    const balance = +Math.max(0, totalEarned - totalWithdrawn).toFixed(8);
 
     return {
       data: {

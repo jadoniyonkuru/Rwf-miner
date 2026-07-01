@@ -75,14 +75,42 @@ export class AdminUsersService {
   }
 
   async suspend(id: string) {
-    await this.findOne(id);
-    await this.prisma.user.update({ where: { id }, data: { isSuspended: true } });
+    const { data: user } = await this.findOne(id);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id }, data: { isSuspended: true } }),
+      // Revoke all refresh tokens so existing sessions cannot be renewed
+      this.prisma.refreshToken.deleteMany({ where: { userId: id } }),
+      this.prisma.notification.create({
+        data: {
+          userId: id,
+          title: 'Account Suspended',
+          message: 'Your account has been suspended by an administrator. Please contact support for assistance.',
+          type: 'ERROR',
+        },
+      }),
+    ]);
+    try {
+      await this.mailService.sendAccountSuspendedEmail(user.email);
+    } catch { /* non-fatal */ }
     return { message: 'User suspended' };
   }
 
   async activate(id: string) {
-    await this.findOne(id);
-    await this.prisma.user.update({ where: { id }, data: { isSuspended: false } });
+    const { data: user } = await this.findOne(id);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id }, data: { isSuspended: false } }),
+      this.prisma.notification.create({
+        data: {
+          userId: id,
+          title: 'Account Activated',
+          message: 'Your account has been reactivated. You can now log in and access all features.',
+          type: 'SUCCESS',
+        },
+      }),
+    ]);
+    try {
+      await this.mailService.sendAccountActivatedEmail(user.email);
+    } catch { /* non-fatal */ }
     return { message: 'User activated' };
   }
 

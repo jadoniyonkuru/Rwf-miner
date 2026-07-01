@@ -28,6 +28,7 @@ enum WithdrawalStatus {
 
 enum TransactionType {
   DEPOSIT
+  COMMISSION
   WITHDRAWAL
   MINING_EARNING
 }
