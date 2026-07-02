@@ -6,6 +6,6 @@ import { MiningCron } from './mining.cron';
 @Module({
   controllers: [MiningController],
   providers: [MiningService, MiningCron],
-  exports: [MiningService],
+  exports: [MiningService, MiningCron],
 })
 export class MiningModule {}

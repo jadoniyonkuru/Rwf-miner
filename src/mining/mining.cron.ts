@@ -10,30 +10,35 @@ export class MiningCron {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async creditDailyEarnings() {
+    await this.runCredit();
+  }
+
+  async runCredit(): Promise<{ credited: number; skipped: number; total: number }> {
     this.logger.log('Mining cron started — crediting daily earnings');
 
     const config = await this.prisma.platformConfig.findFirst();
     const dailyRate = config ? Number(config.miningDailyRate) : 0.005;
 
+    // Only regular users (not admins) who are verified and active
     const users = await this.prisma.user.findMany({
-      where: { isVerified: true, isSuspended: false },
+      where: { isVerified: true, isSuspended: false, role: 'USER' },
       select: { id: true },
     });
 
     let credited = 0;
+    let skipped = 0;
 
     for (const user of users) {
-      const [deposits, withdrawals, earnings] = await Promise.all([
-        this.prisma.deposit.aggregate({ where: { userId: user.id, status: 'CONFIRMED' }, _sum: { amount: true } }),
-        this.prisma.withdrawal.aggregate({ where: { userId: user.id, status: { in: ['PENDING', 'COMPLETED'] } }, _sum: { amount: true } }),
-        this.prisma.miningEarning.aggregate({ where: { userId: user.id }, _sum: { amount: true } }),
-      ]);
+      // Earn on confirmed deposited principal only (not compounded on previous earnings)
+      const deposits = await this.prisma.deposit.aggregate({
+        where: { userId: user.id, status: 'CONFIRMED' },
+        _sum: { amount: true },
+      });
 
-      const balance = Number(deposits._sum.amount || 0) + Number(earnings._sum.amount || 0) - Number(withdrawals._sum.amount || 0);
+      const principal = Number(deposits._sum.amount || 0);
+      if (principal <= 0) { skipped++; continue; }
 
-      if (balance <= 0) continue;
-
-      const earnAmount = +(balance * dailyRate).toFixed(8);
+      const earnAmount = +(principal * dailyRate).toFixed(8);
 
       await this.prisma.$transaction(async (tx) => {
         const earning = await tx.miningEarning.create({
@@ -42,11 +47,20 @@ export class MiningCron {
         await tx.transaction.create({
           data: { userId: user.id, type: 'MINING_EARNING', amount: earnAmount, miningEarningId: earning.id },
         });
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            title: 'Daily Earnings Credited',
+            message: `${earnAmount.toFixed(4)} USDT has been credited to your earnings (${(dailyRate * 100).toFixed(2)}% daily rate on your deposit).`,
+            type: 'SUCCESS',
+          },
+        });
       });
 
       credited++;
     }
 
-    this.logger.log(`Mining cron complete — credited ${credited}/${users.length} users at rate ${dailyRate * 100}%`);
+    this.logger.log(`Mining cron complete — credited ${credited}, skipped ${skipped}/${users.length} users at ${dailyRate * 100}%`);
+    return { credited, skipped, total: users.length };
   }
 }

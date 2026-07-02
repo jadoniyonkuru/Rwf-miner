@@ -14,9 +14,9 @@ export class AdminUsersService {
 
   async findAll(page = 1, limit = 20, search?: string) {
     const skip = (page - 1) * limit;
-    const where = search
-      ? { email: { contains: search, mode: 'insensitive' as const } }
-      : {};
+    // Always exclude ADMIN accounts from the user management list
+    const where: any = { role: 'USER' };
+    if (search) where.email = { contains: search, mode: 'insensitive' };
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Body, Headers, UseGuards, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -6,6 +6,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { MiningService } from './mining.service';
+import { MiningCron } from './mining.cron';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { CalculateDto } from './dto/calculate.dto';
@@ -13,7 +14,20 @@ import { CalculateDto } from './dto/calculate.dto';
 @ApiTags('Mining')
 @Controller('mining')
 export class MiningController {
-  constructor(private readonly miningService: MiningService) {}
+  constructor(
+    private readonly miningService: MiningService,
+    private readonly miningCron: MiningCron,
+  ) {}
+
+  @Post('cron/run')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Trigger daily earnings cron (requires x-cron-secret header)' })
+  async triggerCron(@Headers('x-cron-secret') secret: string) {
+    const expected = process.env.CRON_SECRET;
+    if (!expected || secret !== expected) throw new UnauthorizedException('Invalid cron secret');
+    const result = await this.miningCron.runCredit();
+    return { message: 'Daily earnings credited', data: result };
+  }
 
   @Post('calculate')
   @HttpCode(HttpStatus.OK)
