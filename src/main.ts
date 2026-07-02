@@ -9,7 +9,11 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: false,   // API responses don't need CSP
+    frameguard: false,              // use CSP frame-ancestors instead of X-Frame-Options
+    xPoweredBy: true,               // keep removing X-Powered-By
+  }));
   app.setGlobalPrefix(process.env.API_PREFIX || 'api');
 
   const extraOrigins = (process.env.FRONTEND_URL || '')
