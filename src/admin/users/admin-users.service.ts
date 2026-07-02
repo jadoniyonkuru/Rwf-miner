@@ -18,7 +18,7 @@ export class AdminUsersService {
     const where: any = { role: 'USER' };
     if (search) where.email = { contains: search, mode: 'insensitive' };
 
-    const [users, total] = await Promise.all([
+    const [users, total, depositGroups, earningGroups, withdrawalGroups] = await Promise.all([
       this.prisma.user.findMany({
         where,
         skip,
@@ -35,9 +35,38 @@ export class AdminUsersService {
         },
       }),
       this.prisma.user.count({ where }),
+      // Total confirmed deposits per user
+      this.prisma.deposit.groupBy({
+        by: ['userId'],
+        where: { status: 'CONFIRMED' },
+        _sum: { amount: true },
+      }),
+      // Total earnings per user
+      this.prisma.miningEarning.groupBy({
+        by: ['userId'],
+        _sum: { amount: true },
+      }),
+      // Total withdrawn per user
+      this.prisma.withdrawal.groupBy({
+        by: ['userId'],
+        where: { status: { in: ['PENDING', 'COMPLETED'] } },
+        _sum: { amount: true },
+      }),
     ]);
 
-    return { data: { users, total, page, limit } };
+    // Build lookup maps
+    const depositsMap = Object.fromEntries(depositGroups.map((d) => [d.userId, Number(d._sum.amount || 0)]));
+    const earningsMap = Object.fromEntries(earningGroups.map((e) => [e.userId, Number(e._sum.amount || 0)]));
+    const withdrawalsMap = Object.fromEntries(withdrawalGroups.map((w) => [w.userId, Number(w._sum.amount || 0)]));
+
+    const enriched = users.map((u) => ({
+      ...u,
+      totalDeposited: +(depositsMap[u.id] ?? 0).toFixed(2),
+      totalEarned: +(earningsMap[u.id] ?? 0).toFixed(2),
+      balance: +Math.max(0, (earningsMap[u.id] ?? 0) - (withdrawalsMap[u.id] ?? 0)).toFixed(2),
+    }));
+
+    return { data: { users: enriched, total, page, limit } };
   }
 
   async findOne(id: string) {
