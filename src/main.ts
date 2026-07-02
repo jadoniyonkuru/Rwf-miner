@@ -12,11 +12,16 @@ async function bootstrap() {
   app.use(helmet());
   app.setGlobalPrefix(process.env.API_PREFIX || 'api');
 
+  const extraOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     'https://rwf-miner-ui.vercel.app',
-    process.env.FRONTEND_URL,
+    ...extraOrigins,
   ].filter(Boolean);
 
   app.enableCors({
