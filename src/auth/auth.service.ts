@@ -21,6 +21,16 @@ import { VerifyPinDto } from './dto/verify-pin.dto';
 import { ChangePinDto } from './dto/change-pin.dto';
 import { ResetPinDto } from './dto/reset-pin.dto';
 
+// Track failed login attempts: email → { count, lockedUntil }
+const loginAttempts = new Map<string, { count: number; lockedUntil: number }>();
+// Track failed PIN attempts: userId → { count, lockedUntil }
+const pinAttempts = new Map<string, { count: number; lockedUntil: number }>();
+
+const LOGIN_MAX = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000; // 15 minutes
+const PIN_MAX = 3;
+const PIN_LOCK_MS = 30 * 60 * 1000;   // 30 minutes
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -171,6 +181,13 @@ export class AuthService {
   // ── Login ─────────────────────────────────────────────────────────────────
 
   async login(dto: LoginDto, ip?: string) {
+    const key = dto.email.toLowerCase();
+    const attempt = loginAttempts.get(key);
+    if (attempt && attempt.lockedUntil > Date.now()) {
+      const mins = Math.ceil((attempt.lockedUntil - Date.now()) / 60000);
+      throw new UnauthorizedException(`Too many failed attempts. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`);
+    }
+
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (!user) {
       await this.auditService.log({ userEmail: dto.email, action: 'login', ip, status: 'fail', meta: { reason: 'user_not_found' } });
@@ -179,9 +196,18 @@ export class AuthService {
 
     const passwordMatch = await bcrypt.compare(dto.password, user.password);
     if (!passwordMatch) {
-      await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'wrong_password' } });
-      throw new UnauthorizedException('Invalid credentials');
+      const rec = loginAttempts.get(key) ?? { count: 0, lockedUntil: 0 };
+      rec.count += 1;
+      if (rec.count >= LOGIN_MAX) rec.lockedUntil = Date.now() + LOGIN_LOCK_MS;
+      loginAttempts.set(key, rec);
+      await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'wrong_password', attempt: rec.count } });
+      const left = LOGIN_MAX - rec.count;
+      if (left > 0) throw new UnauthorizedException(`Invalid credentials. ${left} attempt${left > 1 ? 's' : ''} left before lockout.`);
+      throw new UnauthorizedException(`Too many failed attempts. Account locked for 15 minutes.`);
     }
+
+    // Successful login — clear lockout
+    loginAttempts.delete(key);
 
     if (!user.isVerified) {
       await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'fail', meta: { reason: 'email_not_verified' } });
@@ -340,12 +366,27 @@ export class AuthService {
   // ── Verify PIN ────────────────────────────────────────────────────────────
 
   async verifyPin(userId: string, dto: VerifyPinDto) {
+    const pinRec = pinAttempts.get(userId);
+    if (pinRec && pinRec.lockedUntil > Date.now()) {
+      const mins = Math.ceil((pinRec.lockedUntil - Date.now()) / 60000);
+      throw new UnauthorizedException(`PIN locked. Try again in ${mins} minute${mins > 1 ? 's' : ''}.`);
+    }
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user.isPinSet) throw new BadRequestException('PIN not set up yet');
 
     const match = await bcrypt.compare(dto.pin, user.pin);
-    if (!match) throw new UnauthorizedException('Incorrect PIN');
+    if (!match) {
+      const rec = pinAttempts.get(userId) ?? { count: 0, lockedUntil: 0 };
+      rec.count += 1;
+      if (rec.count >= PIN_MAX) rec.lockedUntil = Date.now() + PIN_LOCK_MS;
+      pinAttempts.set(userId, rec);
+      const left = PIN_MAX - rec.count;
+      if (left > 0) throw new UnauthorizedException(`Incorrect PIN. ${left} attempt${left > 1 ? 's' : ''} left.`);
+      throw new UnauthorizedException('Too many wrong PIN attempts. PIN locked for 30 minutes.');
+    }
 
+    pinAttempts.delete(userId);
     return { message: 'PIN verified', data: { verified: true } };
   }
 
