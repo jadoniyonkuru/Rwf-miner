@@ -53,18 +53,28 @@ export class WithdrawalsService {
       throw new BadRequestException(`Minimum withdrawal is ${minWithdrawal} USDT`);
     }
 
-    const balance = await this.getBalance(userId);
-    if (dto.amount > balance) {
-      throw new BadRequestException(`Insufficient balance. Available: ${balance} USDT`);
-    }
+    // Use a transaction so balance check + withdrawal creation are atomic.
+    // Prevents race condition where two simultaneous requests both pass the balance check.
+    const withdrawal = await this.prisma.$transaction(async (tx) => {
+      const [withdrawals, earnings] = await Promise.all([
+        tx.withdrawal.aggregate({
+          where: { userId, status: { in: ['PENDING', 'COMPLETED'] } },
+          _sum: { amount: true },
+        }),
+        tx.miningEarning.aggregate({
+          where: { userId },
+          _sum: { amount: true },
+        }),
+      ]);
+      const balance = +Math.max(0, Number(earnings._sum.amount || 0) - Number(withdrawals._sum.amount || 0)).toFixed(8);
 
-    const withdrawal = await this.prisma.withdrawal.create({
-      data: {
-        userId,
-        amount: dto.amount,
-        address: dto.address,
-        status: 'PENDING',
-      },
+      if (dto.amount > balance) {
+        throw new BadRequestException(`Insufficient balance. Available: ${balance} USDT`);
+      }
+
+      return tx.withdrawal.create({
+        data: { userId, amount: dto.amount, address: dto.address, status: 'PENDING' },
+      });
     });
 
     await this.auditService.log({
