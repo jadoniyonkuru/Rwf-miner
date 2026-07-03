@@ -43,7 +43,7 @@ export class AuthService {
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   private generateOtp(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return require('crypto').randomInt(100000, 1000000).toString();
   }
 
   private generateReferralCode(): string {
@@ -252,6 +252,11 @@ export class AuthService {
 
     if (!stored || stored.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (stored.user.isSuspended) {
+      await this.prisma.refreshToken.delete({ where: { id: stored.id } });
+      throw new UnauthorizedException('Account suspended');
     }
 
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
