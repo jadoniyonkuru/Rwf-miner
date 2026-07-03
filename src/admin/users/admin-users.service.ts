@@ -81,6 +81,9 @@ export class AdminUsersService {
       data: { email: dto.email, password: hashed, isVerified: dto.isVerified ?? true, referralCode },
       select: { id: true, email: true, role: true, isVerified: true, isSuspended: true, createdAt: true },
     });
+    try {
+      await this.mailService.sendAdminCreatedAccountEmail(dto.email, dto.password);
+    } catch { /* non-fatal */ }
     return { message: 'User created', data: user };
   }
 

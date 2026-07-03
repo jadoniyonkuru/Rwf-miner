@@ -151,6 +151,26 @@ export class MailService {
     await this.send(to, 'Your RWF Miner account has been reactivated', html);
   }
 
+  async sendAdminCreatedAccountEmail(to: string, password: string): Promise<void> {
+    const link = `${process.env.FRONTEND_URL || 'https://www.rwfminerpro.com'}/login`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
+        <h2 style="color:#1f2937;margin-bottom:8px">Welcome to RWF Miner!</h2>
+        <p style="color:#6b7280;margin-bottom:24px">An administrator has created an account for you. Here are your login credentials:</p>
+        <div style="background:#f3f4f6;border-radius:8px;padding:20px;margin-bottom:24px">
+          <p style="margin:0 0 8px;color:#6b7280;font-size:13px">Email (Username)</p>
+          <p style="margin:0 0 16px;font-weight:bold;color:#111827">${to}</p>
+          <p style="margin:0 0 8px;color:#6b7280;font-size:13px">Temporary Password</p>
+          <p style="margin:0;font-weight:bold;color:#111827;font-size:18px;letter-spacing:2px">${password}</p>
+        </div>
+        <a href="${link}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:bold">Log In Now</a>
+        <p style="color:#6b7280;font-size:13px;margin-top:16px">After logging in, go to <strong>Settings → Change Password</strong> to set your own password.</p>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">If you did not expect this email, please contact support.</p>
+      </div>
+    `;
+    await this.send(to, 'Your RWF Miner account is ready', html);
+  }
+
   async sendEmailChangedNotification(to: string, otp: string): Promise<void> {
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border:1px solid #e5e7eb;border-radius:8px">
