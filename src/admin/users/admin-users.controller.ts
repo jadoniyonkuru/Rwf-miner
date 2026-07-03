@@ -23,7 +23,9 @@ import { AdminUsersService } from './admin-users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { AdminSetPasswordDto } from './dto/admin-set-password.dto';
 import { CreditBalanceDto } from './dto/credit-balance.dto';
 
 @ApiTags('Admin - Users')
@@ -33,6 +35,15 @@ import { CreditBalanceDto } from './dto/credit-balance.dto';
 @Controller('admin/users')
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create a new user account' })
+  @ApiResponse({ status: 201, description: 'User created' })
+  @ApiResponse({ status: 409, description: 'Email already in use' })
+  createUser(@Body() dto: AdminCreateUserDto) {
+    return this.adminUsersService.createUser(dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'List all users with optional search and pagination' })
@@ -124,6 +135,16 @@ export class AdminUsersController {
   @ApiResponse({ status: 403, description: 'Forbidden — Admin only' })
   activate(@Param('id') id: string) {
     return this.adminUsersService.activate(id);
+  }
+
+  @Post(':id/set-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Directly set a new password for a user (no email required)' })
+  @ApiParam({ name: 'id', description: 'User ID (cuid)' })
+  @ApiResponse({ status: 200, description: 'Password updated' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  setPassword(@Param('id') id: string, @Body() dto: AdminSetPasswordDto) {
+    return this.adminUsersService.setPassword(id, dto);
   }
 
   @Post(':id/reset-password')

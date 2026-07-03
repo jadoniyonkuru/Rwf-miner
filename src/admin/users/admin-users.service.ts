@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from '../../mail/mail.service';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
+import { AdminSetPasswordDto } from './dto/admin-set-password.dto';
 import { CreditBalanceDto } from './dto/credit-balance.dto';
 
 @Injectable()
@@ -67,6 +70,25 @@ export class AdminUsersService {
     }));
 
     return { data: { users: enriched, total, page, limit } };
+  }
+
+  async createUser(dto: AdminCreateUserDto) {
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Email already in use');
+    const hashed = await bcrypt.hash(dto.password, 10);
+    const referralCode = uuidv4().slice(0, 8).toUpperCase();
+    const user = await this.prisma.user.create({
+      data: { email: dto.email, password: hashed, isVerified: dto.isVerified ?? true, referralCode },
+      select: { id: true, email: true, role: true, isVerified: true, isSuspended: true, createdAt: true },
+    });
+    return { message: 'User created', data: user };
+  }
+
+  async setPassword(id: string, dto: AdminSetPasswordDto) {
+    await this.findOne(id);
+    const hashed = await bcrypt.hash(dto.password, 10);
+    await this.prisma.user.update({ where: { id }, data: { password: hashed } });
+    return { message: 'Password updated' };
   }
 
   async findOne(id: string) {
