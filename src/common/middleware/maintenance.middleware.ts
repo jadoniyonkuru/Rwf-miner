@@ -24,10 +24,23 @@ export class MaintenanceMiddleware implements NestMiddleware {
       select: { isMaintenanceMode: true, maintenanceMessage: true },
     });
 
-    if (config?.isMaintenanceMode) {
-      throw new ServiceUnavailableException(config.maintenanceMessage || 'Under maintenance. Please check back soon.');
+    if (!config?.isMaintenanceMode) {
+      return next();
     }
 
-    next();
+    // Admins bypass maintenance — decode JWT role claim (no verification needed here,
+    // guards on each route still enforce full JWT validation)
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf-8'));
+          if (payload?.role === 'ADMIN') return next();
+        }
+      } catch { /* invalid token — fall through and block */ }
+    }
+
+    throw new ServiceUnavailableException(config.maintenanceMessage || 'Under maintenance. Please check back soon.');
   }
 }

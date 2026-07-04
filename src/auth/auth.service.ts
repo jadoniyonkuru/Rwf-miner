@@ -56,8 +56,8 @@ export class AuthService {
     return `${local.slice(0, 2)}${'•'.repeat(3)}@${domain}`;
   }
 
-  private async issueTokens(userId: string, email: string) {
-    const payload = { sub: userId, email };
+  private async issueTokens(userId: string, email: string, role = 'USER') {
+    const payload = { sub: userId, email, role };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET,
@@ -219,7 +219,7 @@ export class AuthService {
       throw new UnauthorizedException('Account suspended');
     }
 
-    const tokens = await this.issueTokens(user.id, user.email);
+    const tokens = await this.issueTokens(user.id, user.email, user.role);
     await this.auditService.log({ userId: user.id, userEmail: user.email, action: 'login', ip, status: 'success' });
 
     return {
@@ -262,7 +262,7 @@ export class AuthService {
 
     await this.prisma.refreshToken.delete({ where: { id: stored.id } });
 
-    const tokens = await this.issueTokens(stored.user.id, stored.user.email);
+    const tokens = await this.issueTokens(stored.user.id, stored.user.email, stored.user.role);
     return { message: 'Token refreshed', data: tokens };
   }
 
