@@ -7,12 +7,15 @@ export class MaintenanceMiddleware implements NestMiddleware {
   constructor(private prisma: PrismaService) {}
 
   async use(req: Request, _res: Response, next: NextFunction) {
+    // Strip /api prefix if present so bypass works regardless of how NestJS mounts the router
+    const path = req.originalUrl.split('?')[0].replace(/^\/api/, '');
+
     // Admin routes, health check, login, and token refresh always bypass maintenance
     if (
-      req.path.startsWith('/api/admin') ||
-      req.path.startsWith('/api/health') ||
-      req.path.startsWith('/api/auth/login') ||
-      req.path.startsWith('/api/auth/refresh-token')
+      path.startsWith('/admin') ||
+      path.startsWith('/health') ||
+      path.startsWith('/auth/login') ||
+      path.startsWith('/auth/refresh-token')
     ) {
       return next();
     }
