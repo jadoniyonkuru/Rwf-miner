@@ -10,12 +10,13 @@ export class MaintenanceMiddleware implements NestMiddleware {
     // Strip /api prefix if present so bypass works regardless of how NestJS mounts the router
     const path = req.originalUrl.split('?')[0].replace(/^\/api/, '');
 
-    // Admin routes, health check, login, and token refresh always bypass maintenance
+    // Admin routes, health check, login, token refresh, and support links always bypass maintenance
     if (
       path.startsWith('/admin') ||
       path.startsWith('/health') ||
       path.startsWith('/auth/login') ||
-      path.startsWith('/auth/refresh-token')
+      path.startsWith('/auth/refresh-token') ||
+      path.startsWith('/support/links')
     ) {
       return next();
     }
