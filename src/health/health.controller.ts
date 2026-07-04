@@ -13,4 +13,10 @@ export class HealthController {
       uptime: Math.floor(process.uptime()),
     };
   }
+
+  @Get('sentry-test')
+  @ApiOperation({ summary: 'Temporary — throws a test error to verify Sentry is working' })
+  sentryTest() {
+    throw new Error('Sentry test error — RWF Miner backend is connected');
+  }
 }
