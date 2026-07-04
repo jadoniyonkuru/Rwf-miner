@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminConfigService } from './admin-config.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -70,5 +70,14 @@ export class AdminConfigController {
     @Body() dto: { whatsappLink?: string; telegramLink?: string },
   ) {
     return this.adminConfigService.updateSupportLinks(dto);
+  }
+
+  @Put('maintenance')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Enable or disable maintenance mode' })
+  toggleMaintenance(
+    @Body() dto: { isMaintenanceMode: boolean; maintenanceMessage?: string },
+  ) {
+    return this.adminConfigService.toggleMaintenance(dto.isMaintenanceMode, dto.maintenanceMessage);
   }
 }

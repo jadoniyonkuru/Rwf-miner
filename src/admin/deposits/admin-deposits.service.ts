@@ -57,14 +57,16 @@ export class AdminDepositsService {
           },
         });
 
-        // Referral commissions — L1: 10%, L2: 3%
-        const depositor = await tx.user.findUnique({
-          where: { id: deposit.userId },
-          select: {
-            referrerId: true,
-            referrer: { select: { id: true, referrerId: true } },
-          },
+        // Referral commissions — L1: 10%, L2: 3% — first confirmed deposit only
+        const previousConfirmed = await tx.deposit.count({
+          where: { userId: deposit.userId, status: 'CONFIRMED', id: { not: id } },
         });
+        const depositor = previousConfirmed === 0
+          ? await tx.user.findUnique({
+              where: { id: deposit.userId },
+              select: { referrerId: true, referrer: { select: { id: true, referrerId: true } } },
+            })
+          : null;
 
         const depositAmount = Number(deposit.amount);
 

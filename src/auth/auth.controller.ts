@@ -54,8 +54,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 409, description: 'Email already registered' })
   @ApiResponse({ status: 400, description: 'Validation error' })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register(@Body() dto: RegisterDto, @Req() req: Request) {
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket?.remoteAddress;
+    return this.authService.register(dto, ip);
   }
 
   @Post('verify-email')

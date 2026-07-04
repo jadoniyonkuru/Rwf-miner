@@ -76,7 +76,7 @@ export class AuthService {
 
   // ── Register ─────────────────────────────────────────────────────────────
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, ip?: string) {
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -107,6 +107,7 @@ export class AuthService {
         emailVerifyExpiry: expiry,
         referralCode,
         ...(referrerId && { referrerId }),
+        ...(ip && { registrationIp: ip }),
       },
     });
 

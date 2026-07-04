@@ -84,4 +84,16 @@ export class AdminConfigService {
     });
     return { message: 'Support links updated' };
   }
+
+  async toggleMaintenance(isMaintenanceMode: boolean, maintenanceMessage?: string) {
+    const config = await this.getOrCreateConfig();
+    await this.prisma.platformConfig.update({
+      where: { id: config.id },
+      data: {
+        isMaintenanceMode,
+        ...(maintenanceMessage !== undefined && { maintenanceMessage }),
+      },
+    });
+    return { message: isMaintenanceMode ? 'Maintenance mode enabled' : 'Maintenance mode disabled' };
+  }
 }
