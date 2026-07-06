@@ -12,6 +12,7 @@ import { AdminConfigController } from './config/admin-config.controller';
 import { AdminNotificationsController } from './notifications/admin-notifications.controller';
 import { AdminDashboardController } from './dashboard/admin-dashboard.controller';
 import { AdminLogsController } from './logs/admin-logs.controller';
+import { AdminPaymentMethodsController } from './payment-methods/admin-payment-methods.controller';
 
 // Services
 import { AdminUsersService } from './users/admin-users.service';
@@ -23,6 +24,7 @@ import { AnalyticsService } from './analytics/analytics.service';
 import { AdminConfigService } from './config/admin-config.service';
 import { AdminNotificationsService } from './notifications/admin-notifications.service';
 import { AdminDashboardService } from './dashboard/admin-dashboard.service';
+import { AdminPaymentMethodsService } from './payment-methods/admin-payment-methods.service';
 
 @Module({
   imports: [MailModule],
@@ -37,6 +39,7 @@ import { AdminDashboardService } from './dashboard/admin-dashboard.service';
     AdminNotificationsController,
     AdminDashboardController,
     AdminLogsController,
+    AdminPaymentMethodsController,
   ],
   providers: [
     AdminUsersService,
@@ -48,6 +51,7 @@ import { AdminDashboardService } from './dashboard/admin-dashboard.service';
     AdminConfigService,
     AdminNotificationsService,
     AdminDashboardService,
+    AdminPaymentMethodsService,
   ],
 })
 export class AdminModule {}

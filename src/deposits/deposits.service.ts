@@ -65,6 +65,7 @@ export class DepositsService {
         amount: dto.amount,
         txHash: dto.txHash,
         status: 'PENDING',
+        ...(dto.paymentMethodId && { paymentMethodId: dto.paymentMethodId }),
       },
     });
 

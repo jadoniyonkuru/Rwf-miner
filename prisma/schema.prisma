@@ -105,6 +105,24 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+model PaymentMethod {
+  id            String   @id @default(cuid())
+  name          String
+  type          String   @default("CRYPTO")
+  accountNumber String
+  instructions  String?  @db.Text
+  qrCode        String?  @db.Text
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deposits Deposit[]
+
+  @@map("payment_methods")
+}
+
 model Deposit {
   id     String        @id @default(cuid())
   userId String
@@ -113,6 +131,9 @@ model Deposit {
   txHash String        @unique
   status DepositStatus @default(PENDING)
   notes  String?
+
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

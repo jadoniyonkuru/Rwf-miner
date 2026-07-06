@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SupportModule } from './support/support.module';
 import { AdminModule } from './admin/admin.module';
 import { HealthModule } from './health/health.module';
+import { PaymentMethodsModule } from './payment-methods/payment-methods.module';
 import { MaintenanceMiddleware } from './common/middleware/maintenance.middleware';
 
 @Module({
@@ -43,6 +44,7 @@ import { MaintenanceMiddleware } from './common/middleware/maintenance.middlewar
     SupportModule,
     AdminModule,
     HealthModule,
+    PaymentMethodsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
