@@ -95,21 +95,55 @@ export class AdminUsersService {
   }
 
   async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        isVerified: true,
-        isSuspended: true,
-        isPinSet: true,
-        createdAt: true,
-        _count: { select: { deposits: true, withdrawals: true, transactions: true } },
-      },
-    });
+    const [user, earnings, allWithdrawals, pendingWithdrawals, confirmedDeposits, recentTx] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isVerified: true,
+          isSuspended: true,
+          isPinSet: true,
+          walletAddress: true,
+          referralCode: true,
+          registrationIp: true,
+          createdAt: true,
+          _count: { select: { deposits: true, withdrawals: true, referrals: true } },
+        },
+      }),
+      this.prisma.miningEarning.aggregate({ where: { userId: id }, _sum: { amount: true }, _count: true }),
+      this.prisma.withdrawal.aggregate({ where: { userId: id, status: { in: ['PENDING', 'COMPLETED'] } }, _sum: { amount: true }, _count: true }),
+      this.prisma.withdrawal.aggregate({ where: { userId: id, status: 'PENDING' }, _sum: { amount: true }, _count: true }),
+      this.prisma.deposit.aggregate({ where: { userId: id, status: 'CONFIRMED' }, _sum: { amount: true }, _count: true }),
+      this.prisma.transaction.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ]);
+
     if (!user) throw new NotFoundException('User not found');
-    return { data: user };
+
+    const totalEarned = Number(earnings._sum.amount || 0);
+    const totalWithdrawn = Number(allWithdrawals._sum.amount || 0);
+    const totalDeposited = Number(confirmedDeposits._sum.amount || 0);
+    const balance = +Math.max(0, totalEarned - totalWithdrawn).toFixed(8);
+
+    return {
+      data: {
+        ...user,
+        balance,
+        totalDeposited,
+        totalEarned,
+        totalWithdrawn,
+        pendingWithdrawalAmount: Number(pendingWithdrawals._sum.amount || 0),
+        pendingWithdrawalCount: pendingWithdrawals._count,
+        depositCount: confirmedDeposits._count,
+        earningCount: earnings._count,
+        recentTransactions: recentTx,
+      },
+    };
   }
 
   async update(id: string, dto: AdminUpdateUserDto) {
