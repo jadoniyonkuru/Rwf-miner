@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString, Min, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsString, IsOptional, Min, MinLength } from 'class-validator';
 
 export class CreateDepositDto {
   @ApiProperty({ example: 100, description: 'Deposit amount in USDT' })
@@ -7,8 +7,13 @@ export class CreateDepositDto {
   @Min(1)
   amount: number;
 
-  @ApiProperty({ example: 'abc123txhash...', description: 'TRC-20 transaction hash (TxID)' })
+  @ApiProperty({ example: 'abc123txhash...', description: 'Transaction hash or reference number' })
   @IsString()
   @MinLength(10)
   txHash: string;
+
+  @ApiPropertyOptional({ description: 'Payment method ID selected by the user' })
+  @IsOptional()
+  @IsString()
+  paymentMethodId?: string;
 }

@@ -16,7 +16,8 @@ export class MaintenanceMiddleware implements NestMiddleware {
       path.startsWith('/health') ||
       path.startsWith('/auth/login') ||
       path.startsWith('/auth/refresh-token') ||
-      path.startsWith('/support/links')
+      path.startsWith('/support/links') ||
+      path.startsWith('/payment-methods')
     ) {
       return next();
     }
