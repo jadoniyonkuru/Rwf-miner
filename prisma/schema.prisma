@@ -84,12 +84,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  deposits       Deposit[]
-  withdrawals    Withdrawal[]
-  transactions   Transaction[]
-  notifications  Notification[]
-  miningEarnings MiningEarning[]
-  refreshTokens  RefreshToken[]
+  deposits        Deposit[]
+  withdrawals     Withdrawal[]
+  transactions    Transaction[]
+  notifications   Notification[]
+  miningEarnings  MiningEarning[]
+  refreshTokens   RefreshToken[]
+  walletAddresses UserWalletAddress[]
 
   @@map("users")
 }
@@ -118,9 +119,26 @@ model PaymentMethod {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  deposits Deposit[]
+  deposits      Deposit[]
+  userAddresses UserWalletAddress[]
 
   @@map("payment_methods")
+}
+
+model UserWalletAddress {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentMethodId String
+  paymentMethod   PaymentMethod @relation(fields: [paymentMethodId], references: [id], onDelete: Cascade)
+  address         String
+  label           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, paymentMethodId])
+  @@map("user_wallet_addresses")
 }
 
 model Deposit {
