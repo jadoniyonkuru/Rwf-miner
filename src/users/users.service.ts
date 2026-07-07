@@ -97,6 +97,38 @@ export class UsersService {
     return { message: 'Wallet address saved', data: { walletAddress } };
   }
 
+  async getPaymentAddresses(userId: string) {
+    const addresses = await this.prisma.userWalletAddress.findMany({
+      where: { userId },
+      include: {
+        paymentMethod: { select: { id: true, name: true, type: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { data: addresses };
+  }
+
+  async savePaymentAddress(userId: string, paymentMethodId: string, address: string, label?: string) {
+    const method = await this.prisma.paymentMethod.findUnique({ where: { id: paymentMethodId } });
+    if (!method) throw new NotFoundException('Payment method not found');
+    if (!address?.trim()) throw new BadRequestException('Address is required');
+
+    const result = await this.prisma.userWalletAddress.upsert({
+      where: { userId_paymentMethodId: { userId, paymentMethodId } },
+      create: { userId, paymentMethodId, address: address.trim(), label: label?.trim() || null },
+      update: { address: address.trim(), label: label?.trim() || null },
+      include: { paymentMethod: { select: { id: true, name: true, type: true } } },
+    });
+    return { message: 'Address saved', data: result };
+  }
+
+  async deletePaymentAddress(userId: string, id: string) {
+    const addr = await this.prisma.userWalletAddress.findUnique({ where: { id } });
+    if (!addr || addr.userId !== userId) throw new NotFoundException('Address not found');
+    await this.prisma.userWalletAddress.delete({ where: { id } });
+    return { message: 'Address removed' };
+  }
+
   async getReferral(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

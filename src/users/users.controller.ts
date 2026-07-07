@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Delete, Body, UseGuards, HttpCode, HttpStatus, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, HttpCode, HttpStatus, Patch } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -89,6 +89,28 @@ export class UsersController {
   })
   updateWallet(@CurrentUser() user: any, @Body('walletAddress') walletAddress: string) {
     return this.usersService.updateWallet(user.id, walletAddress);
+  }
+
+  @Get('me/payment-addresses')
+  @ApiOperation({ summary: 'Get all saved payment addresses' })
+  getPaymentAddresses(@CurrentUser() user: any) {
+    return this.usersService.getPaymentAddresses(user.id);
+  }
+
+  @Post('me/payment-addresses')
+  @ApiOperation({ summary: 'Save or update address for a payment method' })
+  savePaymentAddress(
+    @CurrentUser() user: any,
+    @Body() body: { paymentMethodId: string; address: string; label?: string },
+  ) {
+    return this.usersService.savePaymentAddress(user.id, body.paymentMethodId, body.address, body.label);
+  }
+
+  @Delete('me/payment-addresses/:id')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a saved payment address' })
+  deletePaymentAddress(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.usersService.deletePaymentAddress(user.id, id);
   }
 
   @Get('me/referral')
