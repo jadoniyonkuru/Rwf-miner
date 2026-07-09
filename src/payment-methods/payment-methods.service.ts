@@ -5,9 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PaymentMethodsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAllActive() {
+  async findAllActive(forType?: 'deposit' | 'withdrawal') {
+    const where: any = { isActive: true };
+    if (forType === 'deposit') where.allowDeposit = true;
+    if (forType === 'withdrawal') where.allowWithdrawal = true;
+
     const methods = await this.prisma.paymentMethod.findMany({
-      where: { isActive: true },
+      where,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
       select: {
         id: true,
@@ -17,6 +21,8 @@ export class PaymentMethodsService {
         instructions: true,
         qrCode: true,
         sortOrder: true,
+        allowDeposit: true,
+        allowWithdrawal: true,
       },
     });
     return { data: methods };

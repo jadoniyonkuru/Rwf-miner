@@ -73,7 +73,13 @@ export class WithdrawalsService {
       }
 
       return tx.withdrawal.create({
-        data: { userId, amount: dto.amount, address: dto.address, status: 'PENDING' },
+        data: {
+          userId,
+          amount: dto.amount,
+          address: dto.address,
+          status: 'PENDING',
+          ...(dto.paymentMethodId && { paymentMethodId: dto.paymentMethodId }),
+        },
       });
     });
 

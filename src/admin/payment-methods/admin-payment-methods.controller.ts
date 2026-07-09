@@ -40,6 +40,20 @@ export class AdminPaymentMethodsController {
     return this.service.toggle(id);
   }
 
+  @Patch(':id/toggle-deposit')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Toggle whether this method is available for deposits' })
+  toggleDeposit(@Param('id') id: string) {
+    return this.service.toggleDeposit(id);
+  }
+
+  @Patch(':id/toggle-withdrawal')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Toggle whether this method is available for withdrawals' })
+  toggleWithdrawal(@Param('id') id: string) {
+    return this.service.toggleWithdrawal(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a payment method' })

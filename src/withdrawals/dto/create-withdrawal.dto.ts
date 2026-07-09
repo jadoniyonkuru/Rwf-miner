@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsString, Length, Matches, Min, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNumber, IsString, IsOptional, Length, Matches, Min, MinLength } from 'class-validator';
 
 export class CreateWithdrawalDto {
   @ApiProperty({ example: 50, description: 'Amount to withdraw in USDT' })
@@ -7,9 +7,9 @@ export class CreateWithdrawalDto {
   @Min(1)
   amount: number;
 
-  @ApiProperty({ example: 'TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', description: 'Destination TRC-20 wallet address' })
+  @ApiProperty({ example: 'TXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', description: 'Destination address, phone number, or account number' })
   @IsString()
-  @MinLength(30)
+  @MinLength(5)
   address: string;
 
   @ApiProperty({ example: '123456', description: '6-digit withdrawal PIN' })
@@ -17,4 +17,9 @@ export class CreateWithdrawalDto {
   @Length(6, 6)
   @Matches(/^\d{6}$/, { message: 'PIN must be exactly 6 digits' })
   pin: string;
+
+  @ApiPropertyOptional({ description: 'Payment method ID selected by the user' })
+  @IsOptional()
+  @IsString()
+  paymentMethodId?: string;
 }

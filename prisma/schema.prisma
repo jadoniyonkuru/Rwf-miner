@@ -113,13 +113,16 @@ model PaymentMethod {
   accountNumber String
   instructions  String?  @db.Text
   qrCode        String?  @db.Text
-  isActive      Boolean  @default(true)
-  sortOrder     Int      @default(0)
+  isActive        Boolean  @default(true)
+  allowDeposit    Boolean  @default(true)
+  allowWithdrawal Boolean  @default(true)
+  sortOrder       Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   deposits      Deposit[]
+  withdrawals   Withdrawal[]
   userAddresses UserWalletAddress[]
 
   @@map("payment_methods")
@@ -161,6 +164,8 @@ model Deposit {
   @@map("deposits")
 }
 
+
+
 model Withdrawal {
   id      String           @id @default(cuid())
   userId  String
@@ -169,6 +174,9 @@ model Withdrawal {
   address String
   status  WithdrawalStatus @default(PENDING)
   notes   String?
+
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -56,6 +56,24 @@ export class AdminPaymentMethodsService {
     return { message: updated.isActive ? 'Payment method activated' : 'Payment method deactivated', data: updated };
   }
 
+  async toggleDeposit(id: string) {
+    const method = await this.findOne(id);
+    const updated = await this.prisma.paymentMethod.update({
+      where: { id },
+      data: { allowDeposit: !method.allowDeposit },
+    });
+    return { message: updated.allowDeposit ? 'Deposits enabled' : 'Deposits disabled', data: updated };
+  }
+
+  async toggleWithdrawal(id: string) {
+    const method = await this.findOne(id);
+    const updated = await this.prisma.paymentMethod.update({
+      where: { id },
+      data: { allowWithdrawal: !method.allowWithdrawal },
+    });
+    return { message: updated.allowWithdrawal ? 'Withdrawals enabled' : 'Withdrawals disabled', data: updated };
+  }
+
   async remove(id: string) {
     await this.findOne(id);
     await this.prisma.paymentMethod.delete({ where: { id } });

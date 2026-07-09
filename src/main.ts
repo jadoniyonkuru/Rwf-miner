@@ -24,8 +24,10 @@ async function bootstrap() {
 
   const allowedOrigins = [
     'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:3000',
     'https://rwf-miner-ui.vercel.app',
+    'https://www.rwfminerpro.com',
     ...extraOrigins,
   ].filter(Boolean);
 

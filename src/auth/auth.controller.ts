@@ -40,7 +40,7 @@ export class AuthController {
   // ── Registration & Verification ──────────────────────────────────────────
 
   @Post('register')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === 'development' ? 100 : 5, ttl: 60000 } })
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiResponse({
     status: 201,
@@ -60,7 +60,7 @@ export class AuthController {
   }
 
   @Post('verify-email')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === 'development' ? 100 : 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify email address using the 6-digit OTP' })
   @ApiResponse({
@@ -91,7 +91,7 @@ export class AuthController {
   // ── Session Management ────────────────────────────────────────────────────
 
   @Post('login')
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === 'development' ? 100 : 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login and receive access + refresh tokens' })
   @ApiResponse({
@@ -152,7 +152,7 @@ export class AuthController {
   // ── Password Management ───────────────────────────────────────────────────
 
   @Post('forgot-password')
-  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @Throttle({ default: { limit: process.env.NODE_ENV === 'development' ? 100 : 3, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request a password reset link (sent to email)' })
   @ApiResponse({
